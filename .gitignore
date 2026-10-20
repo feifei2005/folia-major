@@ -24,6 +24,7 @@ dist-ssr
 *.sw?
 
 .vercel
+.env
 .env*.local
 
 dev-dist/
@@ -95,3 +96,8 @@ __pycache__/
 
 # Built by build/buildPythonRuntime.mjs - binary artifacts that live on the mirrors, not in git.
 dist-runtime/
+
+# Built by npm run build:edgeone (bundled EdgeOne Makers cloud function).
+cloud-functions/
+# Created by the EdgeOne CLI (makers dev / deploy) - project link and compiled functions.
+.edgeone/

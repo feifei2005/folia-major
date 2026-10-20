@@ -1,9 +1,9 @@
 // 当前文件：读取 Docker 注入的 Web 运行时配置，并兼容既有 Vite 构建变量。
 
-export type WebAiProvider = 'gemini' | 'openai';
+export type WebAiProvider = 'gemini' | 'openai' | 'makers';
 
 const normalizeAiProvider = (value: unknown): WebAiProvider => (
-    value === 'openai' ? 'openai' : 'gemini'
+    value === 'openai' ? 'openai' : value === 'makers' ? 'makers' : 'gemini'
 );
 
 export const getWebAiProvider = (): WebAiProvider => {

@@ -29,10 +29,18 @@ import { getWebAiProvider, type WebAiProvider } from "./runtimeConfig";
 const THEME_ROUTES: Record<WebAiProvider, string> = {
   gemini: '/api/generate-theme',
   openai: '/api/generate-theme_openai',
+  makers: '/theme',
 };
 
 /** Anything that is not a service of the table goes to Gemini's route. */
 const themeRoute = (provider: WebAiProvider) => THEME_ROUTES[provider] ?? THEME_ROUTES.gemini;
+
+/** Makers Agent endpoints reject requests without this header; one id per ask is enough. */
+const createAgentConversationId = () => (
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `theme-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+);
 
 /** Our web route for the segmentation ask. The route picks the service itself. */
 const SEGMENTATION_ROUTE = '/api/segment-lyrics';
@@ -69,6 +77,7 @@ export const generateThemeFromLyrics = async (
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'makers-conversation-id': createAgentConversationId(),
       },
       body: JSON.stringify({ lyricsText, ...options }),
     });
@@ -104,7 +113,10 @@ export const generateObsThemeFromLyrics = async (
 ): Promise<DualTheme> => {
   const response = await fetch(themeRoute(aiConfig.provider), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'makers-conversation-id': createAgentConversationId(),
+    },
     body: JSON.stringify({ lyricsText, ...(options ?? {}) }),
     signal,
   });

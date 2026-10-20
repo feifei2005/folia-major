@@ -281,7 +281,9 @@ export const requestKugouAnonymousSearch = async (
         : lyricProxyWebUrl(targetUrl.toString());
     const response = await fetch(requestUrl, {
         method: 'GET',
-        credentials: 'omit',
+        // 代理地址是同源的 /api/lyric-proxy，必须带上站点自己的 cookie（自托管部署有访问门）；
+        // 直连 KuGou 时 same-origin 不会把本站 cookie 发给外部域名。
+        credentials: 'same-origin',
         headers: {
             'User-Agent': 'Android14-1070-11070-201-0-SearchSong-wifi',
             'KG-Rec': '1',
@@ -366,7 +368,8 @@ export const requestKugouLegacyPlayInfo = async (hash: string): Promise<any> => 
         : lyricProxyWebUrl(targetUrlString);
     const response = await fetch(requestUrl, {
         method: 'GET',
-        credentials: 'omit',
+        // 同上：同源代理需要访问门 cookie。
+        credentials: 'same-origin',
         headers: {
             'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/124.0.0.0 Mobile Safari/537.36',
         },

@@ -24,6 +24,14 @@ describe('getWebAiProvider', () => {
         expect(getWebAiProvider()).toBe('gemini');
     });
 
+    it('accepts the Makers provider', () => {
+        vi.stubGlobal('window', {
+            __FOLIA_RUNTIME_CONFIG__: { aiProvider: 'makers' },
+        });
+
+        expect(getWebAiProvider()).toBe('makers');
+    });
+
     it('defaults to gemini without runtime configuration', () => {
         vi.stubGlobal('window', {});
 

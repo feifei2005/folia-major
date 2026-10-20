@@ -20,6 +20,8 @@
     "dev:probe": "vite --open /dev-probe.html",
     "build": "npm run build:vercel-api && vite build",
     "build:vercel-api": "tsc -p api-ts/tsconfig.json",
+    "build:edgeone": "vite build --mode edgeone && npm run build:edgeone:functions && node edgeone/prepare.mjs && node edgeone/prepare-agents.mjs",
+    "build:edgeone:functions": "vite build --config vite.edgeone.config.ts",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "codemap": "node dev/mcp/ts-code-map/codemap.mjs",

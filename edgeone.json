@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    { "source": "/*", "destination": "/index.html" }
+  ],
+  "cloudFunctions": {
+    "maxDuration": 120
+  },
+  "agents": {
+    "dir": "agents",
+    "timeout": 180
+  }
+}

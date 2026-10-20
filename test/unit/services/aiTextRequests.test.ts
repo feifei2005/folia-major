@@ -38,7 +38,7 @@ const jsonAnswer = (body: unknown, status = 200) => () => new Response(JSON.stri
 });
 
 /** The web page: no desktop bridge, the service chosen by the deployment, a stored intensity. */
-const stubWebWindow = (aiProvider: 'gemini' | 'openai', extra: Record<string, unknown> = {}) => {
+const stubWebWindow = (aiProvider: 'gemini' | 'openai' | 'makers', extra: Record<string, unknown> = {}) => {
     vi.stubGlobal('window', {
         __FOLIA_RUNTIME_CONFIG__: { aiProvider },
         localStorage: { getItem: (key: string) => (key === 'theme_animation_intensity' ? 'calm' : null) },
@@ -71,6 +71,7 @@ describe('a theme from lyrics', () => {
     it.each([
         ['gemini', '/api/generate-theme'],
         ['openai', '/api/generate-theme_openai'],
+        ['makers', '/theme'],
     ] as const)('on the web with %s posts to %s', async (aiProvider, route) => {
         stubWebWindow(aiProvider);
         const requests = recordFetch(jsonAnswer(THEME_ANSWER));
@@ -81,7 +82,10 @@ describe('a theme from lyrics', () => {
             url: route,
             init: {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'makers-conversation-id': expect.any(String),
+                },
                 body: JSON.stringify({ lyricsText: 'la la la', isPureMusic: true, songTitle: 'Song' }),
             },
         }]);
@@ -116,6 +120,7 @@ describe('a theme for the OBS overlay', () => {
     it.each([
         ['gemini', '/api/generate-theme'],
         ['openai', '/api/generate-theme_openai'],
+        ['makers', '/theme'],
     ] as const)('with %s posts to %s, with the caller\'s abort signal', async (provider, route) => {
         stubWebWindow('gemini');
         const requests = recordFetch(jsonAnswer(THEME_ANSWER));
@@ -127,7 +132,10 @@ describe('a theme for the OBS overlay', () => {
         expect(requests[0].url).toBe(route);
         expect(requests[0].init).toEqual({
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'makers-conversation-id': expect.any(String),
+            },
             body: JSON.stringify({ lyricsText: 'la la la', songTitle: 'Song' }),
             signal,
         });

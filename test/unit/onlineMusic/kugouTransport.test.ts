@@ -176,7 +176,8 @@ describe('KuGou Web transport', () => {
         expect(targetUrl.searchParams.get('pagesize')).toBe('50');
         expect(targetUrl.searchParams.get('token')).toBe('');
         expect(targetUrl.searchParams.get('signature')).toMatch(/^[a-f0-9]{32}$/);
-        expect(fetchMock.mock.calls[0][1]).toMatchObject({ credentials: 'omit' });
+        // 同源 /api 走 EdgeOne 预览网关时要带它自己的 cookie，所以是 same-origin；酷狗凭据在 storage 里，不跟请求走。
+        expect(fetchMock.mock.calls[0][1]).toMatchObject({ credentials: 'same-origin' });
     });
 
     it('uses the same anonymous signed search directly in Electron', async () => {
@@ -216,7 +217,7 @@ describe('KuGou Web transport', () => {
         expect(targetUrl.pathname).toBe('/app/i/getSongInfo.php');
         expect(targetUrl.searchParams.get('cmd')).toBe('playInfo');
         expect(targetUrl.searchParams.get('hash')).toBe('B18B946D9B510FC72AB848FA17D06AFB');
-        expect(fetchMock.mock.calls[0][1]).toMatchObject({ credentials: 'omit' });
+        expect(fetchMock.mock.calls[0][1]).toMatchObject({ credentials: 'same-origin' });
     });
 
     it('calls the legacy mobile playInfo directly in Electron', async () => {

@@ -1,12 +1,14 @@
 import { PlayerState } from '../../../types';
-import { Heart, ListX, Pause, Piano, Play, Repeat, Shuffle, SkipBack, SkipForward, Star, Volume1, Volume2, VolumeX } from 'lucide-react';
+import { Heart, ListX, Pause, Piano, Play, Repeat, Shuffle, SkipBack, SkipForward, Star, Undo2, Volume1, Volume2, VolumeX } from 'lucide-react';
 import { executeModeCommand } from './executeModeCommand';
 import { queueCommand } from './queueCommand';
 import { volumeCommand } from './volumeCommand';
+import { isHifiVolumeFixed, tellHifiVolumeFixed } from '../surfaces/volumeSurface';
 import { fmModeCommand } from './fmModeCommand';
-import type { CommandPaletteCommand } from '../types';
-import { createToggleCommand, createReplayGainCommand, createSoundPresetCommand } from '../commandFactories';
+import type { CommandPaletteCommand, CommandPaletteContext } from '../types';
+import { createToggleCommand, createReplayGainCommand, createSoundPresetCommand, defineCommand } from '../commandFactories';
 import { canShuffleQueue } from '../../../utils/playbackNeighbors';
+import { undoFoliumQueueReplace, useFoliumQueueUndoStore } from '../../../mods/runtime/queue/queueReplaceUndo';
 
 // src/components/command-palette/commands/playbackCommands.ts
 // Commands in the `playback` group: transport, queue, volume, Personal FM mode, ReplayGain, and
@@ -14,6 +16,15 @@ import { canShuffleQueue } from '../../../utils/playbackNeighbors';
 
 /** One press of volume up or down, as a fraction of full volume. */
 const VOLUME_STEP = 0.05;
+
+/** Volume up and down: on HiFi without software volume the DAC or amplifier sets the level, so they say so instead. */
+const stepVolumeUnlessFixed = (context: CommandPaletteContext, delta: number) => {
+    if (isHifiVolumeFixed(context)) {
+        tellHifiVolumeFixed(context);
+        return;
+    }
+    context.playback.stepVolume(delta);
+};
 
 export const playbackCommands: CommandPaletteCommand[] = [
     executeModeCommand,
@@ -55,6 +66,19 @@ export const playbackCommands: CommandPaletteCommand[] = [
     createSoundPresetCommand('bass', 'Sound: Bass boost', 'Heavier low end with extra punch', ['bass boost', 'bass', '低音增强', '重低音']),
     createSoundPresetCommand('custom1', 'Sound: Custom 1', 'Apply the first saved custom sound', ['custom 1', 'custom sound 1', '自定义 1', '自定义音效1', 'zidingyi1', 'zdy1']),
     createSoundPresetCommand('custom2', 'Sound: Custom 2', 'Apply the second saved custom sound', ['custom 2', 'custom sound 2', '自定义 2', '自定义音效2', 'zidingyi2', 'zdy2']),
+    // Folium 1.7: offered only while a mod's equalizer curve is kept, playing or on hold.
+    defineCommand({
+        id: 'playback-sound-mod-curve-release',
+        group: 'playback',
+        title: 'Sound: Back to my own',
+        description: 'Take off the equalizer curve a mod put in place',
+        keywords: ['mod curve', 'restore sound', 'my sound', '模组曲线', '换回音效', '我的音效'],
+        isAvailable: context => context?.playback.hasModEqualizerCurve() ?? false,
+        execute: (_input, context) => {
+            context.playback.releaseModEqualizerCurve();
+            return true;
+        },
+    }),
     {
         id: 'playback-play',
         group: 'playback',
@@ -135,7 +159,7 @@ export const playbackCommands: CommandPaletteCommand[] = [
         'Volume up',
         'Raise the volume by 5%',
         ['louder', 'increase volume', '音量加', '调大音量', '大声'],
-        context => context.playback.stepVolume(VOLUME_STEP),
+        context => stepVolumeUnlessFixed(context, VOLUME_STEP),
         { icon: Volume2 },
     ),
     createToggleCommand(
@@ -144,7 +168,7 @@ export const playbackCommands: CommandPaletteCommand[] = [
         'Volume down',
         'Lower the volume by 5%',
         ['quieter', 'decrease volume', '音量减', '调小音量', '小声'],
-        context => context.playback.stepVolume(-VOLUME_STEP),
+        context => stepVolumeUnlessFixed(context, -VOLUME_STEP),
         { icon: Volume1 },
     ),
     createToggleCommand('playback-shuffle', 'playback', 'Shuffle queue', 'Shuffle current play queue', ['shuffle', '打乱', '打乱队列'], context => context.playback.shuffleQueue(), {
@@ -168,6 +192,17 @@ export const playbackCommands: CommandPaletteCommand[] = [
             context.playback.clearQueue();
             return true;
         },
+    },
+    {
+        // Folium 1.7: the lasting way back from a mod's replaceQueue, for when its notice was pushed off the toast.
+        id: 'playback-undo-queue-replace',
+        isAvailable: () => useFoliumQueueUndoStore.getState().modId !== null,
+        group: 'playback',
+        title: 'Undo mod queue replacement',
+        description: 'Bring back the play queue from before a mod replaced it',
+        keywords: ['undo queue', 'restore queue', '撤销替换', '恢复队列', '撤销队列'],
+        icon: Undo2,
+        execute: () => undoFoliumQueueReplace(),
     },
     {
         id: 'playback-auto-match-best-lyric',

@@ -3,6 +3,7 @@ import type React from 'react';
 import { PlayerState, type ActiveLocalLyricsSource, type LyricData, type PlaybackContext, type ReplayGainMode, type SongResult } from '../types';
 import { createCoverUrlResolver } from '../components/app/playback/createCoverUrlResolver';
 import type { AutomixTransitionEnd } from '../services/automix/automixSession';
+import type { PlaybackRoute } from '../types/hifi';
 
 /** The now-playing picture, frozen for as long as a transition is running. */
 export interface TransitionDisplay {
@@ -75,6 +76,11 @@ type PlaybackStoreState = {
      * `transitionDisplay`. Only meaningful at that change: it is left as it was until the next blend ends.
      */
     transitionEnd: AutomixTransitionEnd | null;
+    /**
+     * Which engine is sounding the current song: 'web' is the <audio> decks, 'hifi' is mpv in the main
+     * process. Not persisted: every start of a song decides it again.
+     */
+    playbackRoute: PlaybackRoute;
 
     setCurrentSong: SetState<SongResult | null>;
     setAudioSrc: SetState<string | null>;
@@ -93,8 +99,11 @@ type PlaybackStoreState = {
     setReplayGainMode: SetState<ReplayGainMode>;
     setLyricTimelineOffsetMs: SetState<number>;
     setTransitionDisplay: SetState<TransitionDisplay | null>;
+    setPlaybackRoute: SetState<PlaybackRoute>;
     /** Lets go of the frozen picture, saying how the blend ended - one update, so a subscriber sees both. */
     releaseTransitionDisplay: (end: AutomixTransitionEnd) => void;
+    /** Puts a whole new queue in and sets Personal FM in the same update, so a subscriber sees both at once. */
+    replacePlayQueue: (queue: SongResult[], isFmMode: boolean) => void;
 };
 
 const resolve = <T,>(next: React.SetStateAction<T>, previous: T): T => (
@@ -125,6 +134,7 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
     lyricTimelineOffsetMs: 0,
     transitionDisplay: null,
     transitionEnd: null,
+    playbackRoute: 'web',
 
     setCurrentSong: (next) => set({ currentSong: resolve(next, get().currentSong) }),
     setAudioSrc: (next) => set({ audioSrc: resolve(next, get().audioSrc) }),
@@ -145,7 +155,9 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
     setReplayGainMode: (next) => set({ replayGainMode: resolve(next, get().replayGainMode) }),
     setLyricTimelineOffsetMs: (next) => set({ lyricTimelineOffsetMs: resolve(next, get().lyricTimelineOffsetMs) }),
     setTransitionDisplay: (next) => set({ transitionDisplay: resolve(next, get().transitionDisplay) }),
+    setPlaybackRoute: (next) => set({ playbackRoute: resolve(next, get().playbackRoute) }),
     releaseTransitionDisplay: (end) => set({ transitionDisplay: null, transitionEnd: end }),
+    replacePlayQueue: (queue, isFmMode) => set({ playQueue: queue, isFmMode }),
 }));
 
 // ---- module-level setters ----
@@ -171,6 +183,8 @@ export const setIsFmMode: SetState<boolean> = (next) => usePlaybackStore.getStat
 export const setReplayGainMode: SetState<ReplayGainMode> = (next) => usePlaybackStore.getState().setReplayGainMode(next);
 export const setLyricTimelineOffsetMs: SetState<number> = (next) => usePlaybackStore.getState().setLyricTimelineOffsetMs(next);
 export const setTransitionDisplay: SetState<TransitionDisplay | null> = (next) => usePlaybackStore.getState().setTransitionDisplay(next);
+export const setPlaybackRoute: SetState<PlaybackRoute> = (next) => usePlaybackStore.getState().setPlaybackRoute(next);
+export const replacePlayQueue = (queue: SongResult[], isFmMode: boolean) => usePlaybackStore.getState().replacePlayQueue(queue, isFmMode);
 
 // ---- derived: the cover, and the display layer ----
 

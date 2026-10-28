@@ -23,17 +23,11 @@ console.log(`[edgeone] 云函数入口 → ${path.relative(root, catchAllPath)}`
 // 云函数已经是自包含 bundle，所以这里刻意不带 dependencies / engines / scripts —— 根 package.json 是
 // Electron 桌面版的清单（原生 tarball 依赖、engines.node>=24），交给 Web 构建器去装必然失败。
 const distDir = path.join(root, 'dist');
-const middlewarePath = path.join(root, 'middleware.js');
-if (!fs.existsSync(middlewarePath)) {
-    console.error('[edgeone] 缺少 middleware.js（站点访问门）');
-    process.exit(1);
-}
 fs.copyFileSync(path.join(root, 'edgeone.json'), path.join(distDir, 'edgeone.json'));
-fs.copyFileSync(middlewarePath, path.join(distDir, 'middleware.js'));
 fs.writeFileSync(path.join(distDir, 'package.json'), JSON.stringify({
     name: 'folia-major-web',
     private: true,
     type: 'module',
 }, null, 4) + '\n');
 fs.cpSync(functionsDir, path.join(distDir, 'cloud-functions'), { recursive: true });
-console.log('[edgeone] 已把 edgeone.json、middleware.js、最小 package.json 与 cloud-functions 复制到 dist/');
+console.log('[edgeone] 已把 edgeone.json、最小 package.json 与 cloud-functions 复制到 dist/');
